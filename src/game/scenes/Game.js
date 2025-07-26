@@ -4,6 +4,9 @@ import { PathfindingSystem } from '../PathfindingSystem';
 import { NPCController } from '../NPCController';
 import { DialogueSystem } from '../DialogueSystem.js';
 import { streamMessage, createDialogueConversation, isLLMLoaded } from '../llm/runner.js';
+// 导入 JSZip。请确保在 index.html 中已添加 JSZip 脚本
+// 例如：<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+import JSZip from 'jszip';
 
 const PLAYER_SPEED = 200;
 const INTERACTION_DISTANCE = 50;
@@ -16,32 +19,20 @@ export class Game extends Scene {
 
     init(data) {
         this.events.on('shutdown', this.shutdown, this);
-        // 接收从App.jsx传递的remake数据
+        // 从 App.jsx 接收 remake 数据 (zip 文件 blob/arraybuffer)
         this.remakeData = data?.remakeData || null;
     }
 
-    preload() {
+    // 将 preload 改为异步函数以处理 zip 文件解压
+    async preload() {
+        // --- 标准资源加载 ---
         this.load.setPath('assets');
-
         this.load.image('background', 'bg.png');
         this.load.image('desk', 'desk.png');
         this.load.image('box', 'box.png');
         this.load.image('chatBubble', 'chat_bubble_seamless.9.png');
         this.load.image('phone', 'phone.png');
-        this.load.image('laptop', 'laptop.png'); // 新增：加载笔记本电脑图片
-
-        // 如果有remake数据，使用它；否则加载默认文件
-        if (this.remakeData) {
-            // 将remake数据直接存储到缓存中，模拟JSON加载
-            this.cache.json.add('sceneObjects', this.remakeData.sceneObjects);
-            this.cache.json.add('dialogue', this.remakeData.dialogue);
-            this.cache.json.add('members', this.remakeData.members);
-        } else {
-            // 加载默认文件
-            this.load.json('sceneObjects', 'maps/scene1_objects.json');
-            this.load.json('dialogue', 'dialogue.json');
-            this.load.json('members', 'members.json');
-        }
+        this.load.image('laptop', 'laptop.png');
 
         const farmerKeys = ['farmer0', 'farmer1', 'farmer2', 'farmer3'];
         farmerKeys.forEach(key => {
@@ -50,7 +41,46 @@ export class Game extends Scene {
                 frameHeight: 83 / 4
             });
         });
+
+        // --- 从 .remake (zip) 文件条件性加载数据 ---
+        if (this.remakeData) {
+            console.log("发现 Remake 数据，正在尝试处理 zip 文件...");
+            try {
+                // 使用 JSZip 加载 zip 文件内容
+                const zip = await JSZip.loadAsync(this.remakeData);
+                
+                // 定义我们期望在 zip 中找到的 JSON 文件
+                const requiredFiles = ['sceneObjects.json', 'dialogue.json', 'members.json'];
+
+                for (const fileName of requiredFiles) {
+                    const file = zip.file(fileName);
+                    if (file) {
+                        // 将文件内容作为字符串获取
+                        const content = await file.async('string');
+                        // 将字符串解析为 JSON 对象
+                        const jsonData = JSON.parse(content);
+                        // 使用不带扩展名的文件名作为键，将解析后的 JSON 添加到 Phaser 的缓存中
+                        const cacheKey = fileName.replace('.json', '');
+                        this.cache.json.add(cacheKey, jsonData);
+                        console.log(`成功加载并缓存 ${fileName} 为 '${cacheKey}'.`);
+                    } else {
+                        console.error(`错误: 在提供的 .remake 文件中未找到 ${fileName}。`);
+                    }
+                }
+            } catch (error) {
+                console.error("加载或解析 .remake zip 文件失败:", error);
+                // 这里可以添加后备或错误处理逻辑
+            }
+        } else {
+            console.log("未提供 Remake 数据。正在加载默认文件 (如果有)。");
+            // 如果在没有提供 remake 文件时需要加载默认 JSON 文件，
+            // 你可以在这里加载它们。例如：
+            // this.load.json('sceneObjects', 'data/sceneObjects.json');
+            // this.load.json('dialogue', 'data/dialogue.json');
+            // this.load.json('members', 'data/members.json');
+        }
     }
+
 
     create() {
         const { width, height } = this.scale;
@@ -94,9 +124,8 @@ export class Game extends Scene {
         this.playerChatBubble = null;
         this.dialogueDepthCounter = 1000;
 
-        // --- 对话系统设置 ---
-        this.dialogueSystem = new DialogueSystem(this);
-        this.dialogueSystem.init(this.allNpcData);
+        // --- 对话系统设置 (已修改) ---
+        this.initializeDialogueSystem();
 
         // --- LLM对话系统设置 ---
         this.isInLLMDialogue = false;
@@ -108,6 +137,41 @@ export class Game extends Scene {
         this.initTimeSystem();
 
         EventBus.emit('current-scene-ready', this);
+    }
+
+    /**
+     * [新增] 初始化对话系统，包含等待数据加载的逻辑。
+     */
+    initializeDialogueSystem() {
+        // [新增] 关键防御代码：如果场景已经不在运行状态（例如被React销毁重建），
+        // 则立即停止后续初始化，防止在无效的场景上调用 this.time 等属性而报错。
+        if (!this.sys.isActive()) {
+            console.log("场景已关闭，中断 DialogueSystem 初始化。");
+            return;
+        }
+
+        // 检查 'dialogue' JSON 数据是否已加载到缓存中。
+        // 这是解决异步加载（例如从zip文件）可能比 `create` 方法的执行晚完成的关键。
+        if (!this.cache.json.get('dialogue')) {
+            // 如果数据尚未准备好，则短暂延迟后重试此方法。
+            // 这种轮询机制确保我们不会在数据可用前继续。
+            console.log("正在等待对话数据加载...");
+            this.time.delayedCall(100, this.initializeDialogueSystem, [], this);
+            return;
+        }
+
+        // 同样，确保 `prepareNPCs` 方法已经成功执行并生成了 `allNpcData`。
+        // `DialogueSystem.init` 方法依赖此数据。
+        if (!this.allNpcData) {
+            console.log("正在等待NPC数据准备...");
+            this.time.delayedCall(100, this.initializeDialogueSystem, [], this);
+            return;
+        }
+
+        // 只有当所有必需数据都准备好时，才创建和初始化 DialogueSystem。
+        console.log("对话数据已加载，正在初始化 DialogueSystem...");
+        this.dialogueSystem = new DialogueSystem(this);
+        this.dialogueSystem.init(this.allNpcData);
     }
 
     update(time, delta) {
