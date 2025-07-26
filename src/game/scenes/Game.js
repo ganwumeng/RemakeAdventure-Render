@@ -2,7 +2,7 @@ import { Scene } from 'phaser';
 import { EventBus } from '../EventBus';
 import { PathfindingSystem } from '../PathfindingSystem';
 import { NPCController } from '../NPCController';
-import { DialogueSystem } from '../DialogueSystem.js';
+// import { DialogueSystem } from '../DialogueSystem.js'; // [修改] 移除不再使用的外部对话系统
 import { streamMessage, createDialogueConversation, isLLMLoaded } from '../llm/runner.js';
 // 导入 JSZip。请确保在 index.html 中已添加 JSZip 脚本
 // 例如：<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -14,7 +14,7 @@ const INTERACTION_DISTANCE = 50;
 export class Game extends Scene {
     constructor() {
         super('Game');
-        this.dialogueSystem = null;
+        this.dialogueSystem = null; // [修改] 此属性保留但不再使用，以防其他地方意外引用
     }
 
     init(data) {
@@ -23,7 +23,10 @@ export class Game extends Scene {
         this.remakeData = data?.remakeData || null;
     }
 
-    // 将 preload 改为异步函数以处理 zip 文件解压
+    /**
+     * [已修改] Preload 方法现在可以处理新的 .remake (zip) 文件格式。
+     * 它会读取新的目录结构，并动态合成旧代码所需的 `members` 和 `dialogue` JSON 数据。
+     */
     async preload() {
         // --- 标准资源加载 ---
         this.load.setPath('assets');
@@ -42,34 +45,100 @@ export class Game extends Scene {
             });
         });
 
-        // --- 从 .remake (zip) 文件条件性加载数据 ---
+        // --- 从 .remake (zip) 文件条件性加载数据 (新格式) ---
         if (this.remakeData) {
-            console.log("发现 Remake 数据，正在尝试处理 zip 文件...");
+            console.log("发现 Remake 数据，正在尝试处理新格式 zip 文件...");
             try {
-                // 使用 JSZip 加载 zip 文件内容
                 const zip = await JSZip.loadAsync(this.remakeData);
                 
-                // 定义我们期望在 zip 中找到的 JSON 文件
-                const requiredFiles = ['sceneObjects.json', 'dialogue.json', 'members.json'];
+                const players = {};
+                const teams = [];
+                let sceneObjects = null;
+                
+                const promises = [];
 
-                for (const fileName of requiredFiles) {
-                    const file = zip.file(fileName);
-                    if (file) {
-                        // 将文件内容作为字符串获取
-                        const content = await file.async('string');
-                        // 将字符串解析为 JSON 对象
-                        const jsonData = JSON.parse(content);
-                        // 使用不带扩展名的文件名作为键，将解析后的 JSON 添加到 Phaser 的缓存中
-                        const cacheKey = fileName.replace('.json', '');
-                        this.cache.json.add(cacheKey, jsonData);
-                        console.log(`成功加载并缓存 ${fileName} 为 '${cacheKey}'.`);
-                    } else {
-                        console.error(`错误: 在提供的 .remake 文件中未找到 ${fileName}。`);
+                // 遍历zip中的所有文件
+                zip.forEach((relativePath, zipEntry) => {
+                    // [新增] 屏蔽 macOS 自动生成的 __MACOSX 文件夹和其中的文件，并跳过其他文件夹
+                    if (zipEntry.dir || relativePath.startsWith('__MACOSX/')) {
+                        return;
                     }
+
+                    const promise = (async () => {
+                        try {
+                            const content = await zipEntry.async('string');
+                            const jsonData = JSON.parse(content);
+
+                            if (relativePath === 'sceneObjects.json') {
+                                sceneObjects = jsonData;
+                                console.log("已加载 sceneObjects.json");
+                            } else if (relativePath.startsWith('players/') && relativePath.endsWith('.json')) {
+                                if (jsonData.uuid) {
+                                    players[jsonData.uuid] = jsonData;
+                                }
+                            } else if (relativePath.startsWith('teams/') && relativePath.endsWith('.json')) {
+                                teams.push(jsonData);
+                            }
+                        } catch(e) {
+                            console.error(`解析文件 ${relativePath} 失败:`, e);
+                        }
+                    })();
+                    promises.push(promise);
+                });
+
+                // 等待所有文件被读取和解析
+                await Promise.all(promises);
+                console.log(`加载完成: ${Object.keys(players).length} 个玩家, ${teams.length} 个队伍.`);
+
+                // 1. 缓存 sceneObjects
+                if (sceneObjects) {
+                    this.cache.json.add('sceneObjects', sceneObjects);
+                    console.log("成功缓存 'sceneObjects'.");
+                } else {
+                    console.error("错误: 在 .remake 文件中未找到 sceneObjects.json。");
                 }
+
+                // 2. 合成并缓存 'members' 数据
+                const synthesizedMembers = teams.map(team => {
+                    const teamMembers = team.members.map(memberUuid => {
+                        const playerData = players[memberUuid];
+                        if (playerData) {
+                            return {
+                                id: playerData.uuid,
+                                type: playerData.role || '未知角色',
+                                introduction: playerData.introduction || '没有介绍。'
+                            };
+                        }
+                        return null;
+                    }).filter(m => m !== null);
+
+                    return {
+                        team_id: team.uuid,
+                        member: teamMembers
+                    };
+                });
+                this.cache.json.add('members', synthesizedMembers);
+                console.log("成功合成并缓存 'members' 数据。");
+
+                // 3. 合成并缓存 'dialogue' 数据
+                const synthesizedDialogue = {};
+                teams.forEach(team => {
+                    if (team.chat_history && team.uuid) {
+                        // [修改] 在合成对话数据时，一并存入 token
+                        synthesizedDialogue[team.uuid] = {
+                            conversation: team.chat_history.map(chat => ({
+                                speaker_id: chat.member,
+                                line: chat.content,
+                                token: chat.token || 100 // 如果没有token，提供一个默认值
+                            }))
+                        };
+                    }
+                });
+                this.cache.json.add('dialogue', synthesizedDialogue);
+                console.log("成功合成并缓存 'dialogue' 数据。");
+
             } catch (error) {
                 console.error("加载或解析 .remake zip 文件失败:", error);
-                // 这里可以添加后备或错误处理逻辑
             }
         } else {
             console.log("未提供 Remake 数据。正在加载默认文件 (如果有)。");
@@ -95,6 +164,9 @@ export class Game extends Scene {
         this.prepareNPCs();
         this.initializePathfinding();
         this.laptops = this.add.group(); // 新增：创建笔记本电脑组
+        
+        // [新增] 用于管理团队对话状态的 Map
+        this.activeTeamConversations = new Map();
 
         this.setPlayerStartPosition();
         this.player = this.add.sprite(this.playerStartX, this.playerStartY, 'farmer0');
@@ -125,7 +197,7 @@ export class Game extends Scene {
         this.dialogueDepthCounter = 1000;
 
         // --- 对话系统设置 (已修改) ---
-        this.initializeDialogueSystem();
+        // this.initializeDialogueSystem(); // [修改] 移除旧的初始化调用
 
         // --- LLM对话系统设置 ---
         this.isInLLMDialogue = false;
@@ -140,39 +212,9 @@ export class Game extends Scene {
     }
 
     /**
-     * [新增] 初始化对话系统，包含等待数据加载的逻辑。
+     * [移除] 不再需要此方法，因为对话逻辑已内嵌。
      */
-    initializeDialogueSystem() {
-        // [新增] 关键防御代码：如果场景已经不在运行状态（例如被React销毁重建），
-        // 则立即停止后续初始化，防止在无效的场景上调用 this.time 等属性而报错。
-        if (!this.sys.isActive()) {
-            console.log("场景已关闭，中断 DialogueSystem 初始化。");
-            return;
-        }
-
-        // 检查 'dialogue' JSON 数据是否已加载到缓存中。
-        // 这是解决异步加载（例如从zip文件）可能比 `create` 方法的执行晚完成的关键。
-        if (!this.cache.json.get('dialogue')) {
-            // 如果数据尚未准备好，则短暂延迟后重试此方法。
-            // 这种轮询机制确保我们不会在数据可用前继续。
-            console.log("正在等待对话数据加载...");
-            this.time.delayedCall(100, this.initializeDialogueSystem, [], this);
-            return;
-        }
-
-        // 同样，确保 `prepareNPCs` 方法已经成功执行并生成了 `allNpcData`。
-        // `DialogueSystem.init` 方法依赖此数据。
-        if (!this.allNpcData) {
-            console.log("正在等待NPC数据准备...");
-            this.time.delayedCall(100, this.initializeDialogueSystem, [], this);
-            return;
-        }
-
-        // 只有当所有必需数据都准备好时，才创建和初始化 DialogueSystem。
-        console.log("对话数据已加载，正在初始化 DialogueSystem...");
-        this.dialogueSystem = new DialogueSystem(this);
-        this.dialogueSystem.init(this.allNpcData);
-    }
+    // initializeDialogueSystem() { ... }
 
     update(time, delta) {
         // 如果在LLM对话中，暂停游戏逻辑
@@ -181,10 +223,10 @@ export class Game extends Scene {
             this.updateNPCControllers();
             this.checkNearbyNPCsForPreload();
             
-            // [恢复] 在主循环中更新对话系统，使其可以被暂停
-            if (this.dialogueSystem) {
-                this.dialogueSystem.update();
-            }
+            // [修改] 不再需要更新外部对话系统
+            // if (this.dialogueSystem) {
+            //     this.dialogueSystem.update();
+            // }
         }
 
         this.updateAllChatBubbles();
@@ -222,6 +264,7 @@ export class Game extends Scene {
     // --- NPC 调度系统 ---
 
     prepareNPCs() {
+        // [修改] 调整等待条件
         if (!this.desks || !this.cache.json.get('members')) {
             this.time.delayedCall(100, this.prepareNPCs, [], this);
             return;
@@ -295,14 +338,133 @@ export class Game extends Scene {
             if (npcData.faceLeft) farmer.setFlipX(true);
             else farmer.setFlipX(false);
 
-            this.addLaptopForNpc(farmer, npcData); // 新增：添加笔记本电脑
+            this.addLaptopForNpc(farmer, npcData);
 
-            // [新增] 当NPC到达工位后，检查是否可以开始团队对话
-            if (this.dialogueSystem) {
-                this.dialogueSystem.tryStartTeamConversation(npcData.teamId);
-            }
+            // [修改] 调用内嵌的对话触发器
+            this.tryStartTeamConversation(npcData.teamId);
         });
     }
+
+    // --- 新增：内嵌的团队对话逻辑 ---
+
+    /**
+     * [已修改] 尝试为指定团队开启对话。
+     * 只有当团队所有成员都就位时才会真正开始。
+     * @param {string} teamId 团队ID
+     */
+    tryStartTeamConversation(teamId) {
+        // 如果该团队的对话已在进行中，则不执行任何操作
+        if (this.activeTeamConversations.has(teamId)) {
+            return;
+        }
+
+        // 找到这个团队的所有成员的定义数据
+        const teamMembers = this.allNpcData.filter(npc => npc.teamId === teamId);
+        if (teamMembers.length === 0) {
+            return;
+        }
+
+        // 检查是否所有成员都处于 'working' 状态
+        const allMembersReady = teamMembers.every(npc => npc.state === 'working');
+
+        if (allMembersReady) {
+            console.log(`团队 ${teamId} 全员到齐，开始对话！`);
+            const dialogueData = this.cache.json.get('dialogue');
+            const conversation = dialogueData[teamId]?.conversation;
+
+            if (conversation && conversation.length > 0) {
+                // 标记此团队对话已激活，并设置初始状态
+                this.activeTeamConversations.set(teamId, {
+                    lines: [...conversation], // 复制对话内容
+                    currentLineIndex: 0,
+                    currentChunkIndex: 0, // [新增] 为分块消息做准备
+                    timer: null // 定时器将在这里管理
+                });
+
+                // 使用一个短暂的初始延迟后，说出第一句话
+                this.time.delayedCall(2000, () => this.showNextDialogueLine(teamId));
+            }
+        }
+    }
+
+    /**
+     * [已修改] 显示一个团队的下一句对话，现在支持自动将长消息分块。
+     * @param {string} teamId 团队ID
+     */
+    showNextDialogueLine(teamId) {
+        const convoState = this.activeTeamConversations.get(teamId);
+
+        // 如果对话状态不存在或已结束，则清理并返回
+        if (!convoState || convoState.currentLineIndex >= convoState.lines.length) {
+            if (convoState) {
+                this.activeTeamConversations.delete(teamId);
+                console.log(`团队 ${teamId} 对话结束。`);
+            }
+            return;
+        }
+
+        const lineData = convoState.lines[convoState.currentLineIndex];
+        const speakerNpcData = this.allNpcData.find(npc => npc.memberId === lineData.speaker_id);
+
+        if (speakerNpcData) {
+            const speakerSprite = this.npcFarmers.children.entries.find(sprite => sprite.getData('id') === speakerNpcData.id);
+            if (speakerSprite) {
+                // 将当前对话行分割成多个块
+                const line = lineData.line;
+                const chunkSize = 100; // 每块的最大字符数
+                const chunks = [];
+                if (line && line.length > 0) {
+                    for (let i = 0; i < line.length; i += chunkSize) {
+                        chunks.push(line.substring(i, i + chunkSize));
+                    }
+                } else {
+                    chunks.push(""); // 优雅地处理空行
+                }
+
+                // 获取要显示的当前块
+                const currentChunk = chunks[convoState.currentChunkIndex];
+                
+                // 根据块的长度计算显示时间
+                const duration = 1500 + currentChunk.length * 60; // 每字符60毫秒
+                this.showNPCChatBubble(speakerSprite, currentChunk, duration);
+                
+                // 移动到下一个块或下一行
+                convoState.currentChunkIndex++;
+                
+                if (convoState.currentChunkIndex < chunks.length) {
+                    // 当前行还有更多块。在短暂延迟后显示下一个块。
+                    const nextDelay = duration + 250; // 等待当前气泡消失 + 250毫秒停顿
+                    convoState.timer = this.time.delayedCall(nextDelay, () => this.showNextDialogueLine(teamId));
+                } else {
+                    // 这是当前行的最后一块。移动到下一行。
+                    convoState.currentChunkIndex = 0; // 为下一行重置
+                    convoState.currentLineIndex++;
+                    
+                    // 检查整个对话是否结束
+                    if (convoState.currentLineIndex < convoState.lines.length) {
+                        // 安排下一行的开始
+                        const nextDelay = duration + 500; // 等待最后一个气泡消失 + 500毫秒停顿
+                        convoState.timer = this.time.delayedCall(nextDelay, () => this.showNextDialogueLine(teamId));
+                    } else {
+                        // 整个对话结束。
+                        this.time.delayedCall(duration, () => {
+                            this.activeTeamConversations.delete(teamId);
+                            console.log(`团队 ${teamId} 对话结束。`);
+                        });
+                    }
+                }
+            } else {
+                 // 未找到说话者精灵，跳到下一行以避免卡住
+                 convoState.currentLineIndex++;
+                 this.time.delayedCall(100, () => this.showNextDialogueLine(teamId));
+            }
+        } else {
+            // 未找到说话者数据，跳到下一行
+            convoState.currentLineIndex++;
+            this.time.delayedCall(100, () => this.showNextDialogueLine(teamId));
+        }
+    }
+
 
     makeOneNpcLeave(npcData = null) {
         if (!npcData) {
@@ -522,8 +684,12 @@ export class Game extends Scene {
             this.npcControllers.forEach(controller => controller.destroy());
             this.npcControllers.clear();
         }
-        if (this.dialogueSystem) {
-            this.dialogueSystem.destroy();
+        // [新增] 清理所有正在进行的对话定时器
+        if (this.activeTeamConversations) {
+            this.activeTeamConversations.forEach(convo => {
+                if (convo.timer) convo.timer.remove();
+            });
+            this.activeTeamConversations.clear();
         }
         this.endLLMDialogue();
     }
