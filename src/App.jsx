@@ -16,6 +16,7 @@ function App() {
     const [isLoadingLLM, setIsLoadingLLM] = useState(false);
     const [showFullscreenButton, setShowFullscreenButton] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [isFullscreenReady, setIsFullscreenReady] = useState(false);
     // 当前场景状态（用于虚拟控制器显示逻辑）
     const [currentScene, setCurrentScene] = useState(null);
 
@@ -84,10 +85,16 @@ function App() {
                 (window.innerWidth <= 768 && window.innerHeight <= 1024);
         };
 
-        setIsMobile(checkIsMobile());
+        const mobile = checkIsMobile();
+        setIsMobile(mobile);
+
+        // 如果不是移动端，直接设置全屏就绪
+        if (!mobile) {
+            setIsFullscreenReady(true);
+        }
     }, []);
 
-    // 自动进入全屏
+    // 移动端可选全屏功能
     useEffect(() => {
         if (!isMobile) return;
 
@@ -117,11 +124,11 @@ function App() {
                 // 添加模拟全屏的CSS类
                 document.body.classList.add('simulated-fullscreen');
 
-                // 调整游戏容器大小
-                const gameContainer = document.getElementById('game-container');
-                if (gameContainer && phaserRef.current?.game) {
-                    phaserRef.current.game.scale.resize(window.innerWidth, window.innerHeight);
-                }
+                // 不调整游戏尺寸，保持固定的桌面端尺寸
+                // 游戏会通过Scale.FIT模式自动适配到全屏容器中
+
+                // 设置全屏就绪状态
+                setIsFullscreenReady(true);
             }, 100);
         };
 
@@ -154,6 +161,8 @@ function App() {
                 }
 
                 console.log('成功进入全屏模式');
+                // 设置全屏就绪状态
+                setIsFullscreenReady(true);
             } catch (error) {
                 console.log('全屏请求被拒绝或失败:', error.message);
 
@@ -175,8 +184,8 @@ function App() {
         };
 
         // 手动全屏函数
-        window.manualEnterFullscreen = () => {
-            enterFullscreen();
+        window.manualEnterFullscreen = async () => {
+            await enterFullscreen();
             setShowFullscreenButton(false);
         };
 
@@ -211,9 +220,15 @@ function App() {
         const handleFullscreenChange = () => {
             if (isFullscreenActive()) {
                 console.log('已进入全屏模式');
+                setIsFullscreenReady(true);
             } else {
                 console.log('已退出全屏模式');
+                // 如果是移动端且退出了全屏，需要重新进入
+                if (isMobile) {
+                    setIsFullscreenReady(false);
+                }
             }
+            // 不调整游戏尺寸，保持固定的桌面端尺寸
         };
 
         // 添加所有可能的全屏事件监听器
@@ -376,10 +391,17 @@ function App() {
     const handleVirtualKeyDown = (key) => {
         if (!phaserRef.current?.game) return;
 
+        console.log(`虚拟按键按下: ${key}`);
+
+        // 处理刷新按钮
+        if (key === 'REFRESH') {
+            console.log('刷新页面');
+            window.location.reload();
+            return;
+        }
+
         const scene = phaserRef.current.game.scene.getScene('Game');
         if (!scene) return;
-
-        console.log(`虚拟按键按下: ${key}`);
 
         // 直接设置按键状态，更可靠的方法
         try {
@@ -409,10 +431,15 @@ function App() {
     const handleVirtualKeyUp = (key) => {
         if (!phaserRef.current?.game) return;
 
+        console.log(`虚拟按键释放: ${key}`);
+
+        // 刷新按钮和E键不需要处理释放状态
+        if (key === 'REFRESH' || key === 'E') {
+            return;
+        }
+
         const scene = phaserRef.current.game.scene.getScene('Game');
         if (!scene) return;
-
-        console.log(`虚拟按键释放: ${key}`);
 
         // 重置按键状态
         try {
@@ -433,7 +460,6 @@ function App() {
                 scene.wasd.D._justDown = false;
                 scene.wasd.D._justUp = true;
             }
-            // E键不需要处理释放状态，因为它是瞬时动作
         } catch (error) {
             console.error('虚拟按键释放处理错误:', error);
         }
@@ -441,7 +467,78 @@ function App() {
 
     return (
         <div id="app">
-            <PhaserGame ref={phaserRef} />
+            {/* 只有在全屏就绪后才渲染游戏 */}
+            {isFullscreenReady && <PhaserGame ref={phaserRef} />}
+
+            {/* 移动端全屏等待提示 */}
+            {isMobile && !isFullscreenReady && !showFullscreenButton && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        background: 'rgba(0,0,0,0.95)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 10000,
+                        cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                        // 尝试进入全屏
+                        const events = ['touchstart', 'click'];
+                        events.forEach(eventType => {
+                            document.dispatchEvent(new Event(eventType));
+                        });
+                    }}
+                >
+                    <div style={{
+                        background: 'rgba(0,0,0,0.9)',
+                        color: 'white',
+                        padding: '30px',
+                        borderRadius: '15px',
+                        textAlign: 'center',
+                        fontFamily: 'FusionPixel, sans-serif',
+                        maxWidth: '300px',
+                        border: '2px solid #0ec3c9'
+                    }}>
+                        <div style={{
+                            fontSize: '48px',
+                            marginBottom: '20px',
+                            animation: 'pulse 2s infinite'
+                        }}>
+                            📱
+                        </div>
+                        <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: '#0ec3c9' }}>
+                            移动端优化
+                        </h3>
+                        <p style={{ margin: '0 0 20px 0', fontSize: '14px', lineHeight: '1.5' }}>
+                            点击此处进入全屏模式<br />
+                            以获得最佳游戏体验
+                        </p>
+                        <div style={{
+                            fontSize: '12px',
+                            color: '#ccc',
+                            fontStyle: 'italic'
+                        }}>
+                            全屏模式可确保游戏正确获取屏幕尺寸
+                        </div>
+                        <div style={{
+                            marginTop: '15px',
+                            padding: '8px 16px',
+                            background: '#0ec3c9',
+                            color: '#000',
+                            borderRadius: '5px',
+                            fontSize: '14px',
+                            fontWeight: 'bold'
+                        }}>
+                            点击进入全屏
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* 大模型加载时显示加载屏幕 */}
             {isLoadingLLM && (
@@ -509,7 +606,7 @@ function App() {
             )}
 
             {/* 移动端虚拟控制器 */}
-            {isMobile && !isLoadingLLM && (
+            {isMobile && !isLoadingLLM && isFullscreenReady && (
                 <VirtualControls
                     onKeyDown={handleVirtualKeyDown}
                     onKeyUp={handleVirtualKeyUp}

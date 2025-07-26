@@ -6,11 +6,12 @@ const VirtualControls = ({ onKeyDown, onKeyUp }) => {
 
     // 虚拟按键配置
     const virtualKeys = [
-        { key: 'W', label: '↑', x: 60, y: 20 },
-        { key: 'A', label: '←', x: 20, y: 60 },
-        { key: 'S', label: '↓', x: 60, y: 60 },
-        { key: 'D', label: '→', x: 100, y: 60 },
-        { key: 'E', label: 'E', x: 160, y: 40, special: true }
+        { key: 'W', label: '↑', x: 65, y: 20 },
+        { key: 'A', label: '←', x: 20, y: 65 },
+        { key: 'S', label: '↓', x: 65, y: 65 },
+        { key: 'D', label: '→', x: 110, y: 65 },
+        { key: 'E', label: 'E', x: 170, y: 40, special: true },
+        { key: 'REFRESH', label: '⟳', x: 220, y: 40, special: true, action: true }
     ];
 
     const handleTouchStart = (e, key) => {
@@ -164,8 +165,8 @@ const VirtualControls = ({ onKeyDown, onKeyUp }) => {
                 position: 'fixed',
                 bottom: 'env(safe-area-inset-bottom, 20px)',
                 left: 'env(safe-area-inset-left, 20px)',
-                width: '200px',
-                height: '100px',
+                width: '270px',
+                height: '110px',
                 zIndex: 1000,
                 userSelect: 'none',
                 pointerEvents: 'auto',
@@ -173,53 +174,69 @@ const VirtualControls = ({ onKeyDown, onKeyUp }) => {
             }}
             onTouchMove={handleTouchMove}
         >
-            {virtualKeys.map(({ key, label, x, y, special }) => (
-                <div
-                    key={key}
-                    data-virtual-key={key}
-                    style={{
-                        position: 'absolute',
-                        left: `${x}px`,
-                        top: `${y}px`,
-                        width: special ? '35px' : '30px',
-                        height: special ? '35px' : '30px',
-                        backgroundColor: pressedKeys.has(key) 
-                            ? (special ? 'rgba(255, 165, 0, 0.8)' : 'rgba(14, 195, 201, 0.8)')
-                            : (special ? 'rgba(255, 165, 0, 0.4)' : 'rgba(255, 255, 255, 0.4)'),
-                        border: `2px solid ${special ? '#FFA500' : '#0ec3c9'}`,
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: pressedKeys.has(key) ? '#000' : '#fff',
-                        fontFamily: 'FusionPixel, monospace',
-                        fontSize: special ? '16px' : '18px',
-                        fontWeight: 'bold',
-                        textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-                        cursor: 'pointer',
-                        transition: 'all 0.1s ease',
-                        transform: pressedKeys.has(key) ? 'scale(0.95)' : 'scale(1)',
-                        boxShadow: pressedKeys.has(key) 
-                            ? 'inset 0 2px 4px rgba(0,0,0,0.3)' 
-                            : '0 2px 4px rgba(0,0,0,0.3)',
-                        backdropFilter: 'blur(2px)',
-                        touchAction: 'none' // 禁用默认触摸行为
-                    }}
-                    onTouchStart={(e) => handleTouchStart(e, key)}
-                    onTouchEnd={(e) => handleTouchEnd(e, key)}
-                    onTouchCancel={(e) => handleTouchEnd(e, key)}
-                    onMouseDown={(e) => handleMouseDown(e, key)}
-                    onMouseUp={(e) => handleMouseUp(e, key)}
-                    onMouseLeave={(e) => handleMouseUp(e, key)}
-                    onContextMenu={(e) => {
-                        if (e.cancelable) {
-                            e.preventDefault();
-                        }
-                    }}
-                >
-                    {label}
-                </div>
-            ))}
+            {virtualKeys.map(({ key, label, x, y, special, action }) => {
+                // 根据按键类型确定颜色
+                let bgColor, borderColor;
+                if (action) {
+                    // 刷新按钮使用绿色
+                    bgColor = pressedKeys.has(key) ? 'rgba(34, 197, 94, 0.8)' : 'rgba(34, 197, 94, 0.4)';
+                    borderColor = '#22c55e';
+                } else if (special) {
+                    // E键使用橙色
+                    bgColor = pressedKeys.has(key) ? 'rgba(255, 165, 0, 0.8)' : 'rgba(255, 165, 0, 0.4)';
+                    borderColor = '#FFA500';
+                } else {
+                    // WASD使用青色
+                    bgColor = pressedKeys.has(key) ? 'rgba(14, 195, 201, 0.8)' : 'rgba(255, 255, 255, 0.4)';
+                    borderColor = '#0ec3c9';
+                }
+
+                return (
+                    <div
+                        key={key}
+                        data-virtual-key={key}
+                        style={{
+                            position: 'absolute',
+                            left: `${x}px`,
+                            top: `${y}px`,
+                            width: special || action ? '40px' : '35px', // 稍微大一点
+                            height: special || action ? '40px' : '35px',
+                            backgroundColor: bgColor,
+                            border: `2px solid ${borderColor}`,
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: pressedKeys.has(key) ? '#000' : '#fff',
+                            fontFamily: 'FusionPixel, monospace',
+                            fontSize: special || action ? '18px' : '20px', // 稍微大一点
+                            fontWeight: 'bold',
+                            textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+                            cursor: 'pointer',
+                            transition: 'all 0.1s ease',
+                            transform: pressedKeys.has(key) ? 'scale(0.95)' : 'scale(1)',
+                            boxShadow: pressedKeys.has(key) 
+                                ? 'inset 0 2px 4px rgba(0,0,0,0.3)' 
+                                : '0 2px 4px rgba(0,0,0,0.3)',
+                            backdropFilter: 'blur(2px)',
+                            touchAction: 'none' // 禁用默认触摸行为
+                        }}
+                        onTouchStart={(e) => handleTouchStart(e, key)}
+                        onTouchEnd={(e) => handleTouchEnd(e, key)}
+                        onTouchCancel={(e) => handleTouchEnd(e, key)}
+                        onMouseDown={(e) => handleMouseDown(e, key)}
+                        onMouseUp={(e) => handleMouseUp(e, key)}
+                        onMouseLeave={(e) => handleMouseUp(e, key)}
+                        onContextMenu={(e) => {
+                            if (e.cancelable) {
+                                e.preventDefault();
+                            }
+                        }}
+                    >
+                        {label}
+                    </div>
+                );
+            })}
             
             {/* 半透明背景 */}
             <div
