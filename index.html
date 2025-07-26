@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/style.css">
+    <title>Remake Adventure X</title>
+</head>
+
+<body>
+    <div id="root"></div>
+    
+    <!-- 寻路测试控制面板 -->
+    <div id="pathfinding-controls" style="position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; font-family: FusionPixel, sans-serif; z-index: 1000;">
+        <h3 style="margin: 0 0 10px 0; font-size: 14px;">寻路测试控制</h3>
+        <button id="ask-llm" style="display: block; width: 100%; margin: 5px 0; padding: 5px; font-size: 12px;font-family: FusionPixel">询问大模型你好</button>
+        <button id="toggle-grid" style="display: block; width: 100%; margin: 5px 0; padding: 5px; font-size: 12px;font-family: FusionPixel">显示/隐藏网格</button>
+        <button id="stop-all-npcs" style="display: block; width: 100%; margin: 5px 0; padding: 5px; font-size: 12px;font-family: FusionPixel">停止所有NPC</button>
+        <p style="margin: 10px 0 0 0; font-size: 11px; color: #ccc;">点击游戏区域让第一个NPC移动到该位置</p>
+    </div>
+    
+    <script type="module" src="./src/main.jsx"></script>
+</body>
+
+</html>

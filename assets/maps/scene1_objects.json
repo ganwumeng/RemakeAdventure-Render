@@ -1,0 +1,318 @@
+{
+    "scene": "Game",
+    "player": {
+        "startX": 731,
+        "startY": 202
+    },
+    "npcs": {
+        "farmers": [
+            {
+                "id": "farmer1",
+                "x": 400,
+                "y": 250,
+                "spriteKey": "farmer1",
+                "direction": "down"
+            },
+            {
+                "id": "farmer2",
+                "x": 500,
+                "y": 250,
+                "spriteKey": "farmer2",
+                "direction": "down"
+            },
+            {
+                "id": "farmer3",
+                "x": 400,
+                "y": 350,
+                "spriteKey": "farmer3",
+                "direction": "up"
+            },
+            {
+                "id": "farmer4",
+                "x": 500,
+                "y": 350,
+                "spriteKey": "farmer0",
+                "direction": "up"
+            }
+        ]
+    },
+    "objects": {
+        "desks": [
+            {
+                "id": "desk_1",
+                "x": 150,
+                "y": 370,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_2",
+                "x": 150,
+                "y": 530,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_3",
+                "x": 350,
+                "y": 370,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_4",
+                "x": 350,
+                "y": 530,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_5",
+                "x": 550,
+                "y": 370,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_6",
+                "x": 550,
+                "y": 530,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_7",
+                "x": 750,
+                "y": 370,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_8",
+                "x": 750,
+                "y": 530,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_9",
+                "x": 950,
+                "y": 370,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_10",
+                "x": 950,
+                "y": 530,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_11",
+                "x": 1150,
+                "y": 370,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_12",
+                "x": 1150,
+                "y": 530,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_13",
+                "x": 1350,
+                "y": 370,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_14",
+                "x": 1350,
+                "y": 530,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_15",
+                "x": 350,
+                "y": 690,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_16",
+                "x": 550,
+                "y": 690,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_17",
+                "x": 750,
+                "y": 690,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_18",
+                "x": 950,
+                "y": 690,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_19",
+                "x": 1150,
+                "y": 690,
+                "rotation": 0,
+                "passableHeight": 30
+            },
+            {
+                "id": "desk_20",
+                "x": 1350,
+                "y": 690,
+                "rotation": 0,
+                "passableHeight": 30
+            }
+        ],
+        "boxes": [
+            {
+                "id": "box_1",
+                "x": 110,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 150,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 190,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 230,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 250,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 330,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 410,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 500,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 580,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 660,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 825,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 910,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 990,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 1080,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 1180,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 1220,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 1260,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 1275,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            },
+            {
+                "id": "box_1",
+                "x": 1350,
+                "y": 230,
+                "rotation": 0,
+                "passableHeight": 0
+            }
+        ]
+    }
+}

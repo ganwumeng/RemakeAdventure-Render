@@ -1,0 +1,136 @@
+.title-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: url('/assets/bg.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    overflow: hidden;
+}
+
+.title-screen::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: -1;
+}
+
+.title-container {
+    text-align: center;
+    color: white;
+    z-index: 10;
+    position: relative;
+}
+
+.title-npc-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.title-npc {
+    transition: transform 0.1s ease-out;
+    will-change: transform;
+}
+
+/* 为NPC添加轻微的缩放动画，让它们看起来更生动 */
+.title-npc:hover {
+    transform: scale(1.1) !important;
+    opacity: 0.8 !important;
+    transition: all 0.3s ease;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .title-npc {
+        width: 24px !important;
+        height: 36px !important;
+    }
+}
+
+.game-title {
+    font-family: 'FusionPixel', sans-serif;
+    font-size: 4rem;
+    margin-bottom: 3rem;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+    background: linear-gradient(45deg, #fff, #f0f0f0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.button-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.title-button {
+    font-family: 'FusionPixel', sans-serif;
+    font-size: 1.2rem;
+    padding: 1rem 2rem;
+    width: 250px;
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.title-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(45deg, #5CBF60, #4CAF50);
+}
+
+.title-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.title-button:nth-child(2) {
+    background: linear-gradient(45deg, #FF9800, #F57C00);
+}
+
+.title-button:nth-child(2):hover {
+    background: linear-gradient(45deg, #FFB74D, #FF9800);
+}
+
+.title-button:nth-child(3) {
+    background: linear-gradient(45deg, #2196F3, #1976D2);
+}
+
+.title-button:nth-child(3):hover {
+    background: linear-gradient(45deg, #64B5F6, #2196F3);
+}
+
+@media (max-width: 768px) {
+    .game-title {
+        font-size: 2.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .title-button {
+        font-size: 1rem;
+        padding: 0.8rem 1.5rem;
+        width: 200px;
+    }
+}
