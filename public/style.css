@@ -16,12 +16,78 @@
     }
 }
 
-body {
+html, body {
     margin: 0;
     padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
     color: rgba(255, 255, 255, 0.87);
     background-color: #000000; 
     font-family: Arial, Helvetica, sans-serif;
+    /* 移动端优化 */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    /* 防止页面滚动和缩放 */
+    touch-action: none;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+}
+
+/* 移动端全屏优化 */
+@media screen and (max-width: 768px) {
+    body {
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+        height: 100%;
+    }
+    
+    #app {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+    }
+    
+    #game-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+    }
+    
+    /* 移动端控制面板优化 */
+    #pathfinding-controls {
+        top: env(safe-area-inset-top, 10px) !important;
+        right: env(safe-area-inset-right, 10px) !important;
+        font-size: 12px !important;
+        padding: 8px !important;
+        max-width: 150px;
+    }
+    
+    #pathfinding-controls h3 {
+        font-size: 12px !important;
+        margin: 0 0 8px 0 !important;
+    }
+    
+    #pathfinding-controls button {
+        font-size: 10px !important;
+        padding: 4px !important;
+        margin: 3px 0 !important;
+    }
+    
+    #pathfinding-controls p {
+        font-size: 9px !important;
+        margin: 8px 0 0 0 !important;
+    }
 }
 
 #app {

@@ -12,7 +12,15 @@ const config = {
     backgroundColor: '#028af8',
     scale: {
         mode: Scale.RESIZE,
-        autoCenter: Scale.CENTER_BOTH
+        autoCenter: Scale.CENTER_BOTH,
+        // 移动端全屏优化
+        fullscreenTarget: 'game-container'
+    },
+    // 移动端输入优化
+    input: {
+        touch: true,
+        mouse: true,
+        keyboard: true
     },
     scene: [
         TitleScene,

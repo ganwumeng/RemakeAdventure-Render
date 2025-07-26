@@ -73,6 +73,71 @@ function App ()
         }
     };
 
+    // 检测移动端并自动进入全屏
+    useEffect(() => {
+        const isMobile = () => {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                   (window.innerWidth <= 768 && window.innerHeight <= 1024);
+        };
+
+        const enterFullscreen = async () => {
+            try {
+                const element = document.documentElement;
+                if (element.requestFullscreen) {
+                    await element.requestFullscreen();
+                } else if (element.webkitRequestFullscreen) {
+                    await element.webkitRequestFullscreen();
+                } else if (element.msRequestFullscreen) {
+                    await element.msRequestFullscreen();
+                } else if (element.mozRequestFullScreen) {
+                    await element.mozRequestFullScreen();
+                }
+                console.log('已进入全屏模式');
+            } catch (error) {
+                console.log('无法进入全屏模式:', error);
+            }
+        };
+
+        const handleUserInteraction = () => {
+            if (isMobile() && !document.fullscreenElement) {
+                enterFullscreen();
+                // 移除事件监听器，避免重复触发
+                document.removeEventListener('touchstart', handleUserInteraction);
+                document.removeEventListener('click', handleUserInteraction);
+            }
+        };
+
+        // 如果是移动端，在用户首次交互时进入全屏
+        if (isMobile()) {
+            console.log('检测到移动端设备，将在用户交互时自动进入全屏');
+            document.addEventListener('touchstart', handleUserInteraction, { once: true });
+            document.addEventListener('click', handleUserInteraction, { once: true });
+        }
+
+        // 监听全屏状态变化
+        const handleFullscreenChange = () => {
+            if (document.fullscreenElement) {
+                console.log('已进入全屏模式');
+            } else {
+                console.log('已退出全屏模式');
+            }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener('touchstart', handleUserInteraction);
+            document.removeEventListener('click', handleUserInteraction);
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+        };
+    }, []);
+
     useEffect(() => {
         // 监听来自标题场景的事件
         const startGameListener = (data) => handleStartGame(data.useLLM);
