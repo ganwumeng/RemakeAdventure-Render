@@ -12,7 +12,8 @@ const VirtualControls = ({ onKeyDown, onKeyUp }) => {
         { key: 'S', label: '↓', x: 65, y: 65 },
         { key: 'D', label: '→', x: 110, y: 65 },
         { key: 'E', label: 'E', x: 170, y: 40, special: true },
-        { key: 'REFRESH', label: '⟳', x: 220, y: 40, special: true, action: true }
+        { key: 'REFRESH', label: '⟳', x: 220, y: 40, special: true, action: true },
+        { key: 'FULLSCREEN', label: '⛶', x: 20, y: 20, special: true, action: true }
     ];
 
     // 使用useCallback封装核心的按键操作逻辑，以稳定函数引用

@@ -134,19 +134,15 @@ function App() {
         setUseLLM(false);
     };
 
-    // [修改] 检测移动端，但不立即改变 isFullscreenReady 状态
     useEffect(() => {
         const checkIsMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 768 && window.innerHeight <= 1024);
         const mobile = checkIsMobile();
         setIsMobile(mobile);
         if (!mobile) {
-            // 桌面端直接准备好游戏
             setIsFullscreenReady(true);
         }
-        // 移动端 isFullscreenReady 保持 false，会触发全屏提示
     }, []);
 
-    // [修改] 设置全屏功能，但不强制执行
     useEffect(() => {
         if (!isMobile) return;
 
@@ -162,14 +158,13 @@ function App() {
             }
         };
 
-        // 暴露给UI调用的函数
         window.manualEnterFullscreen = async () => {
             await enterFullscreen();
-            setIsFullscreenReady(true); // 无论成功与否，都继续游戏
+            setIsFullscreenReady(true);
         };
 
         window.skipFullscreen = () => {
-            setIsFullscreenReady(true); // 用户选择跳过
+            setIsFullscreenReady(true);
         };
 
         return () => {
@@ -178,7 +173,6 @@ function App() {
         };
     }, [isMobile]);
 
-    // 游戏事件监听
     useEffect(() => {
         const startGameListener = (data) => handleStartGame(data.useLLM);
         const showAboutListener = () => setShowAbout(true);
@@ -197,13 +191,20 @@ function App() {
         };
     }, [useLLM]);
 
-    // 虚拟按键处理
+    // 虚拟按键处理函数
     const handleVirtualKeyDown = (key) => {
-        if (!phaserRef.current?.game) return;
+        // 允许刷新和全屏，即使游戏未完全加载
         if (key === 'REFRESH') {
             window.location.reload();
             return;
         }
+        if (key === 'FULLSCREEN') {
+            window.manualEnterFullscreen?.();
+            return;
+        }
+
+        if (!phaserRef.current?.game) return;
+
         const scene = phaserRef.current.game.scene.getScene('Game');
         if (!scene) return;
         if (key === 'W' && scene.wasd?.W) scene.wasd.W.isDown = true;
@@ -214,7 +215,8 @@ function App() {
     };
 
     const handleVirtualKeyUp = (key) => {
-        if (!phaserRef.current?.game || key === 'REFRESH' || key === 'E') return;
+        // 对于一次性动作，KeyUp 中无需处理
+        if (!phaserRef.current?.game || key === 'REFRESH' || key === 'E' || key === 'FULLSCREEN') return;
         const scene = phaserRef.current.game.scene.getScene('Game');
         if (!scene) return;
         if (key === 'W' && scene.wasd?.W) scene.wasd.W.isDown = false;
@@ -224,11 +226,11 @@ function App() {
     };
 
     return (
-        <div id="app">
-            {/* [修改] 游戏在用户对全屏提示做出选择后渲染 */}
+        <div id="app" className="w-screen h-screen bg-gray-800">
+            {/* 游戏在用户对全屏提示做出选择后渲染 */}
             {isFullscreenReady && <PhaserGame ref={phaserRef} />}
 
-            {/* [修改] 全屏建议提示框 */}
+            {/* 全屏建议提示框 */}
             {isMobile && !isFullscreenReady && (
                 <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
                     <div style={{ background: '#2d3748', color: 'white', padding: '30px', borderRadius: '15px', textAlign: 'center', fontFamily: 'FusionPixel, sans-serif', maxWidth: '350px', border: '2px solid #0ec3c9', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
@@ -257,8 +259,8 @@ function App() {
                                 background: 'transparent', color: '#a0aec0', border: '1px solid #4a5568',
                                 borderRadius: '8px', cursor: 'pointer', transition: 'background-color 0.2s, color 0.2s'
                             }}
-                             onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#4a5568'; e.currentTarget.style.color = '#e2e8f0'; }}
-                             onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#a0aec0'; }}
+                            onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#4a5568'; e.currentTarget.style.color = '#e2e8f0'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#a0aec0'; }}
                         >
                             跳过
                         </button>
@@ -276,7 +278,7 @@ function App() {
             {isLoadingLLM && <LoadingScreen progress={loadingProgress} status={loadingStatus} />}
             <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
 
-            {/* [修改] 虚拟摇杆在游戏准备好后显示 */}
+            {/* 虚拟摇杆在游戏准备好后显示 */}
             {isMobile && !isLoadingLLM && isFullscreenReady && (
                 <VirtualControls
                     onKeyDown={handleVirtualKeyDown}
