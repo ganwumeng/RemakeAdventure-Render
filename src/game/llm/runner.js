@@ -1,6 +1,6 @@
 import * as webllm from "@mlc-ai/web-llm";
 
-const selectedModel = "Qwen3-1.7B-q4f16_1-MLC";
+const selectedModel = "Qwen3-1.7B-q4f32_1-MLC";
 let engine = null;
 let isLoading = false;
 let isLoaded = false;
