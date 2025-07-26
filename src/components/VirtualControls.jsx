@@ -14,7 +14,10 @@ const VirtualControls = ({ onKeyDown, onKeyUp }) => {
     ];
 
     const handleTouchStart = (e, key) => {
-        e.preventDefault();
+        // 安全地调用preventDefault
+        if (e.cancelable) {
+            e.preventDefault();
+        }
         
         // 支持多点触控
         Array.from(e.changedTouches).forEach(touch => {
@@ -28,7 +31,10 @@ const VirtualControls = ({ onKeyDown, onKeyUp }) => {
     };
 
     const handleTouchEnd = (e, key) => {
-        e.preventDefault();
+        // 安全地调用preventDefault
+        if (e.cancelable) {
+            e.preventDefault();
+        }
         
         // 检查是否还有其他触摸点在这个按键上
         let stillPressed = false;
@@ -57,7 +63,10 @@ const VirtualControls = ({ onKeyDown, onKeyUp }) => {
     };
 
     const handleMouseDown = (e, key) => {
-        e.preventDefault();
+        // 安全地调用preventDefault
+        if (e.cancelable) {
+            e.preventDefault();
+        }
         if (!pressedKeys.has(key)) {
             setPressedKeys(prev => new Set([...prev, key]));
             onKeyDown?.(key);
@@ -65,7 +74,10 @@ const VirtualControls = ({ onKeyDown, onKeyUp }) => {
     };
 
     const handleMouseUp = (e, key) => {
-        e.preventDefault();
+        // 安全地调用preventDefault
+        if (e.cancelable) {
+            e.preventDefault();
+        }
         if (pressedKeys.has(key)) {
             setPressedKeys(prev => {
                 const newSet = new Set(prev);
@@ -78,7 +90,10 @@ const VirtualControls = ({ onKeyDown, onKeyUp }) => {
 
     // 处理触摸移出按键区域
     const handleTouchMove = (e) => {
-        e.preventDefault();
+        // 安全地调用preventDefault
+        if (e.cancelable) {
+            e.preventDefault();
+        }
         
         Array.from(e.changedTouches).forEach(touch => {
             const element = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -154,7 +169,7 @@ const VirtualControls = ({ onKeyDown, onKeyUp }) => {
                 zIndex: 1000,
                 userSelect: 'none',
                 pointerEvents: 'auto',
-                touchAction: 'manipulation'
+                touchAction: 'none' // 完全禁用默认触摸行为
             }}
             onTouchMove={handleTouchMove}
         >
@@ -187,7 +202,8 @@ const VirtualControls = ({ onKeyDown, onKeyUp }) => {
                         boxShadow: pressedKeys.has(key) 
                             ? 'inset 0 2px 4px rgba(0,0,0,0.3)' 
                             : '0 2px 4px rgba(0,0,0,0.3)',
-                        backdropFilter: 'blur(2px)'
+                        backdropFilter: 'blur(2px)',
+                        touchAction: 'none' // 禁用默认触摸行为
                     }}
                     onTouchStart={(e) => handleTouchStart(e, key)}
                     onTouchEnd={(e) => handleTouchEnd(e, key)}
@@ -195,7 +211,11 @@ const VirtualControls = ({ onKeyDown, onKeyUp }) => {
                     onMouseDown={(e) => handleMouseDown(e, key)}
                     onMouseUp={(e) => handleMouseUp(e, key)}
                     onMouseLeave={(e) => handleMouseUp(e, key)}
-                    onContextMenu={(e) => e.preventDefault()}
+                    onContextMenu={(e) => {
+                        if (e.cancelable) {
+                            e.preventDefault();
+                        }
+                    }}
                 >
                     {label}
                 </div>

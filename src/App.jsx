@@ -8,7 +8,7 @@ import VirtualControls from './components/VirtualControls.jsx';
 function App() {
     //  References to the PhaserGame component (game and scene are exposed)
     const phaserRef = useRef();
-    const [gameState, setGameState] = useState('game'); // 直接启动游戏，标题界面在游戏引擎中
+    // 直接启动游戏，标题界面在游戏引擎中
     const [useLLM, setUseLLM] = useState(true);
     const [loadingProgress, setLoadingProgress] = useState(0);
     const [loadingStatus, setLoadingStatus] = useState('初始化中...');
@@ -16,6 +16,7 @@ function App() {
     const [isLoadingLLM, setIsLoadingLLM] = useState(false);
     const [showFullscreenButton, setShowFullscreenButton] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    // 当前场景状态（用于虚拟控制器显示逻辑）
     const [currentScene, setCurrentScene] = useState(null);
 
     // 处理启动游戏
@@ -164,7 +165,7 @@ function App() {
             }
         };
 
-        const handleUserInteraction = (event) => {
+        const handleUserInteraction = () => {
             if (!isFullscreenActive()) {
                 // 延迟执行，确保用户交互事件完成
                 setTimeout(() => {
@@ -195,7 +196,7 @@ function App() {
         events.forEach(eventType => {
             document.addEventListener(eventType, handleUserInteraction, {
                 once: true,
-                passive: eventType !== 'touchmove'
+                passive: true // 所有事件都设为被动，因为handleUserInteraction不需要preventDefault
             });
         });
 
