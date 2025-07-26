@@ -4,6 +4,7 @@ import { EventBus } from './game/EventBus';
 import LoadingScreen from './components/LoadingScreen.jsx';
 import AboutModal from './components/AboutModal.jsx';
 import VirtualControls from './components/VirtualControls.jsx';
+import RemakeFileSelector from './components/RemakeFileSelector.jsx';
 
 function App() {
     //  References to the PhaserGame component (game and scene are exposed)
@@ -19,13 +20,24 @@ function App() {
     const [isFullscreenReady, setIsFullscreenReady] = useState(false);
     // 当前场景状态（用于虚拟控制器显示逻辑）
     const [currentScene, setCurrentScene] = useState(null);
+    // Remake文件选择状态
+    const [showRemakeSelector, setShowRemakeSelector] = useState(false);
+    const [remakeData, setRemakeData] = useState(null);
 
     // 处理启动游戏
     const handleStartGame = async (withLLM) => {
+        // 先显示文件选择器
         setUseLLM(withLLM);
+        setShowRemakeSelector(true);
+    };
+
+    // 处理remake文件加载完成
+    const handleRemakeFileLoaded = async (gameData) => {
+        setRemakeData(gameData);
+        setShowRemakeSelector(false);
         setIsLoadingLLM(true);
 
-        if (withLLM) {
+        if (useLLM) {
             // 动态导入大模型相关代码，只有在需要时才加载
             try {
                 setLoadingStatus('正在加载大模型模块...');
@@ -51,9 +63,9 @@ function App() {
                 setLoadingStatus('加载完成！');
                 setTimeout(() => {
                     setIsLoadingLLM(false);
-                    // 启动游戏场景
+                    // 启动游戏场景，传递remake数据
                     if (phaserRef.current && phaserRef.current.game) {
-                        phaserRef.current.game.scene.start('Game');
+                        phaserRef.current.game.scene.start('Game', { remakeData });
                         phaserRef.current.game.scene.stop('TitleScene');
                     }
                 }, 500);
@@ -69,13 +81,20 @@ function App() {
             setLoadingProgress(100);
             setTimeout(() => {
                 setIsLoadingLLM(false);
-                // 启动游戏场景
+                // 启动游戏场景，传递remake数据
                 if (phaserRef.current && phaserRef.current.game) {
-                    phaserRef.current.game.scene.start('Game');
+                    phaserRef.current.game.scene.start('Game', { remakeData });
                     phaserRef.current.game.scene.stop('TitleScene');
                 }
             }, 1000);
         }
+    };
+
+    // 处理取消文件选择
+    const handleCancelRemakeSelection = () => {
+        setShowRemakeSelector(false);
+        setUseLLM(false);
+        setRemakeData(null);
     };
 
     // 检测移动端
@@ -538,6 +557,14 @@ function App() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Remake文件选择器 */}
+            {showRemakeSelector && (
+                <RemakeFileSelector
+                    onFileLoaded={handleRemakeFileLoaded}
+                    onCancel={handleCancelRemakeSelection}
+                />
             )}
 
             {/* 大模型加载时显示加载屏幕 */}

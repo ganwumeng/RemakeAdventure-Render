@@ -14,8 +14,10 @@ export class Game extends Scene {
         this.dialogueSystem = null;
     }
 
-    init() {
+    init(data) {
         this.events.on('shutdown', this.shutdown, this);
+        // 接收从App.jsx传递的remake数据
+        this.remakeData = data?.remakeData || null;
     }
 
     preload() {
@@ -27,9 +29,19 @@ export class Game extends Scene {
         this.load.image('chatBubble', 'chat_bubble_seamless.9.png');
         this.load.image('phone', 'phone.png');
         this.load.image('laptop', 'laptop.png'); // 新增：加载笔记本电脑图片
-        this.load.json('sceneObjects', 'maps/scene1_objects.json');
-        this.load.json('dialogue', 'dialogue.json');
-        this.load.json('members', 'members.json');
+
+        // 如果有remake数据，使用它；否则加载默认文件
+        if (this.remakeData) {
+            // 将remake数据直接存储到缓存中，模拟JSON加载
+            this.cache.json.add('sceneObjects', this.remakeData.sceneObjects);
+            this.cache.json.add('dialogue', this.remakeData.dialogue);
+            this.cache.json.add('members', this.remakeData.members);
+        } else {
+            // 加载默认文件
+            this.load.json('sceneObjects', 'maps/scene1_objects.json');
+            this.load.json('dialogue', 'dialogue.json');
+            this.load.json('members', 'members.json');
+        }
 
         const farmerKeys = ['farmer0', 'farmer1', 'farmer2', 'farmer3'];
         farmerKeys.forEach(key => {

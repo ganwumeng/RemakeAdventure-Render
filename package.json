@@ -28,6 +28,7 @@
     },
     "dependencies": {
         "@mlc-ai/web-llm": "^0.2.79",
+        "jszip": "^3.10.1",
         "phaser": "^3.90.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0"
