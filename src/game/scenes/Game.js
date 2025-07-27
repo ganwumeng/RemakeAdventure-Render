@@ -404,16 +404,26 @@ export class Game extends Scene {
         }
 
         const lineData = convoState.lines[convoState.currentLineIndex];
+        
+        // [新增] 添加一个安全检查，以防 lineData 无效或缺少必要属性
+        if (!lineData || typeof lineData.speaker_id === 'undefined') {
+            console.warn(`Skipping invalid dialogue line for team ${teamId} at index ${convoState.currentLineIndex}.`, lineData);
+            convoState.currentLineIndex++;
+            this.time.delayedCall(100, () => this.showNextDialogueLine(teamId));
+            return;
+        }
+
         const speakerNpcData = this.allNpcData.find(npc => npc.memberId === lineData.speaker_id);
 
         if (speakerNpcData) {
             const speakerSprite = this.npcFarmers.children.entries.find(sprite => sprite.getData('id') === speakerNpcData.id);
             if (speakerSprite) {
-                // 将当前对话行分割成多个块
-                const line = lineData.line;
+                // [修复] 确保 'line' 始终是字符串，以防止在访问 .length 时出现“undefined”错误。
+                const line = lineData.line || '';
                 const chunkSize = 100; // 每块的最大字符数
                 const chunks = [];
-                if (line && line.length > 0) {
+                
+                if (line.length > 0) {
                     for (let i = 0; i < line.length; i += chunkSize) {
                         chunks.push(line.substring(i, i + chunkSize));
                     }
